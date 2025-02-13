@@ -69,3 +69,12 @@ Follow these steps to build and run the application:
 
 - **Unit Tests:** Utilize JUnit for unit tests.
 - **Instrumented Tests:** Challenges faced and solved with Bluetooth permissions. Tested on Android 11.0 device.
+
+## For IOT CSC2106
+
+- base template to be modified to fit the project scope:
+  - include notifications 
+  - details of crash
+  - location
+  - time
+  - etcccc
