@@ -3,32 +3,81 @@ package com.example.bluetoothapp.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.bluetoothapp.data.ConnectedDevice
 import com.example.bluetoothapp.data.Device
 import com.example.bluetoothapp.data.DeviceResponse
 import com.example.bluetoothapp.domain.GetDevicesUseCase
+import com.example.bluetoothapp.repository.ConnectedDevicesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class DevicesViewModel @Inject constructor(private val getDevicesUseCase: GetDevicesUseCase) :
-    ViewModel() {
+class DevicesViewModel @Inject constructor(
+    private val getDevicesUseCase: GetDevicesUseCase,
+    private val connectedDevicesRepository: ConnectedDevicesRepository
+) : ViewModel() {
 
-    private val _devicesFlow = MutableStateFlow<List<Device>>(emptyList())
-    val devicesFlow: Flow<List<Device>> = _devicesFlow
+    private val _apiDevicesFlow = MutableStateFlow<List<Device>>(emptyList())
+    
+    // Combine API devices with connected devices
+    val devicesFlow: StateFlow<List<Device>> = 
+        combine(
+            _apiDevicesFlow,
+            connectedDevicesRepository.connectedDevices
+        ) { apiDevices, connectedDevices ->
+            // Convert connected devices to Device objects
+            val connectedDevicesList = connectedDevices.map { it.toDevice() }
+            
+            // Add the connected devices to the beginning of the list
+            connectedDevicesList + apiDevices.filter { api ->
+                // Filter out API devices that have the same MAC address as connected devices
+                // to avoid duplicates
+                connectedDevices.none { it.address == api.macAddress }
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+        
+    // Separate flow of only connected devices
+    val connectedDevices: StateFlow<List<ConnectedDevice>> = 
+        connectedDevicesRepository.connectedDevices
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
 
     init {
         // Start the use case when the ViewModel is created
         viewModelScope.launch {
-
             getDevicesUseCase().collect { deviceResponse ->
-                    // Update the StateFlow with the list of devices
-                    _devicesFlow.value = deviceResponse.devices
-                }
+                // Update the StateFlow with the list of devices from API
+                _apiDevicesFlow.value = deviceResponse.devices
+            }
         }
     }
-
-
+    
+    /**
+     * Remove a previously connected device from the list
+     */
+    fun removeConnectedDevice(address: String) {
+        connectedDevicesRepository.removeDevice(address)
+    }
+    
+    /**
+     * Get connection status of a device
+     */
+    fun isDeviceConnected(address: String): Boolean {
+        return connectedDevicesRepository.isDeviceConnected(address)
+    }
 }
