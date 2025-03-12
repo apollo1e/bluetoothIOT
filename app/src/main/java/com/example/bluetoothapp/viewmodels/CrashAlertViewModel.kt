@@ -1,5 +1,7 @@
 package com.example.bluetoothapp.viewmodels
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,6 +42,20 @@ class CrashAlertViewModel @Inject constructor(
             initialValue = false
         )
     
+    val unattendedAlerts: StateFlow<List<CrashAlert>> = crashAlertRepository.unattendedAlerts
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+        
+    val hasUnattendedAlerts: StateFlow<Boolean> = crashAlertRepository.hasUnattendedAlerts
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+    
     // Temporary storage for accumulating data from multiple BLE services
     private val pendingAlerts = HashMap<String, MutableMap<String, String>>()
     
@@ -56,6 +72,14 @@ class CrashAlertViewModel @Inject constructor(
     fun acknowledgeCrashAlert(crashAlertId: String) {
         crashAlertRepository.acknowledgeCrashAlert(crashAlertId)
     }
+    
+    fun markAsAttended(crashAlertId: String) {
+        crashAlertRepository.updateAttendanceStatus(crashAlertId, true)
+    }
+    
+    fun markAsUnattended(crashAlertId: String) {
+        crashAlertRepository.updateAttendanceStatus(crashAlertId, false)
+    }
 
     fun deleteCrashAlert(crashAlertId: String) {
         crashAlertRepository.deleteCrashAlert(crashAlertId)
@@ -63,6 +87,12 @@ class CrashAlertViewModel @Inject constructor(
 
     fun clearAllCrashAlerts() {
         crashAlertRepository.clearAllCrashAlerts()
+    }
+    
+    fun getLocationUri(latitude: Double, longitude: Double): String {
+        // Create a more reliable Google Maps URI with label
+        // This format works better with Google Maps and other map applications
+        return "geo:$latitude,$longitude?q=$latitude,$longitude(Crash+Location)"
     }
 
     /**

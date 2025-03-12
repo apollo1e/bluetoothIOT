@@ -27,6 +27,10 @@ data class CrashAlert(
     // From M5Stick location service
     val location: String = "",
     
+    // GPS coordinates for map integration
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    
     // From M5Stick crash service
     val crashStatus: String = "",
     
@@ -34,7 +38,8 @@ data class CrashAlert(
     val accelerationValue: Float = 0f, // Can be parsed from crash type if available
     val severity: CrashSeverity = CrashSeverity.MEDIUM,
     
-    val isAcknowledged: Boolean = false
+    val isAcknowledged: Boolean = false,
+    val isAttended: Boolean = false
 )
 
 enum class CrashSeverity {

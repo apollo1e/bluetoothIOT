@@ -207,7 +207,7 @@ internal fun BluetoothDeviceItem(
 @Composable
 private fun BluetoothScanEffect(
     scanSettings: ScanSettings,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    lifecycleOwner: LifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current,
     onScanFailed: (Int) -> Unit,
     onDeviceFound: (device: ScanResult) -> Unit,
 ) {

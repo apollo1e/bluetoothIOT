@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothProfile
 import android.os.Build
@@ -127,7 +128,7 @@ fun ConnectGATT(
  * M5Stick service UUIDs for crash detection
  */
 private object M5StickUUIDs {
-    const val SERVICE_CRASH_UUID = "00002222-0000-1000-8000-00805f9b34fb"  // Crash Status
+    const val SERVICE_CRASH_UUID = "12345678-1234-5678-1234-56789abcdef0"  // Crash Status - Fixed to match M5Stick
     const val SERVICE_TIME_UUID = "22345678-1234-5678-1234-56789abcdef0"   // Timestamp
     const val SERVICE_LOCATION_UUID = "32345678-1234-5678-1234-56789abcdef0" // Location
     const val SERVICE_CRASH_TYPE_UUID = "42345678-1234-5678-1234-56789abcdef0" // Crash Type
@@ -318,6 +319,40 @@ fun ConnectDeviceScreen(
     val characteristic by remember(service) {
         mutableStateOf(service?.getCharacteristic(CHARACTERISTIC_UUID))
     }
+    
+    // Find M5Stick services
+    val m5StickCrashService by remember(state?.services) {
+        mutableStateOf(state?.services?.find { it.uuid.toString() == M5StickUUIDs.SERVICE_CRASH_UUID })
+    }
+    
+    val m5StickTimeService by remember(state?.services) {
+        mutableStateOf(state?.services?.find { it.uuid.toString() == M5StickUUIDs.SERVICE_TIME_UUID })
+    }
+    
+    val m5StickLocationService by remember(state?.services) {
+        mutableStateOf(state?.services?.find { it.uuid.toString() == M5StickUUIDs.SERVICE_LOCATION_UUID })
+    }
+    
+    val m5StickCrashTypeService by remember(state?.services) {
+        mutableStateOf(state?.services?.find { it.uuid.toString() == M5StickUUIDs.SERVICE_CRASH_TYPE_UUID })
+    }
+    
+    // Find M5Stick characteristics
+    val m5StickCrashChar by remember(m5StickCrashService) {
+        mutableStateOf(m5StickCrashService?.getCharacteristic(java.util.UUID.fromString(M5StickUUIDs.CHARACTERISTIC_CRASH_UUID)))
+    }
+    
+    val m5StickTimeChar by remember(m5StickTimeService) {
+        mutableStateOf(m5StickTimeService?.getCharacteristic(java.util.UUID.fromString(M5StickUUIDs.CHARACTERISTIC_TIME_UUID)))
+    }
+    
+    val m5StickLocationChar by remember(m5StickLocationService) {
+        mutableStateOf(m5StickLocationService?.getCharacteristic(java.util.UUID.fromString(M5StickUUIDs.CHARACTERISTIC_LOCATION_UUID)))
+    }
+    
+    val m5StickCrashTypeChar by remember(m5StickCrashTypeService) {
+        mutableStateOf(m5StickCrashTypeService?.getCharacteristic(java.util.UUID.fromString(M5StickUUIDs.CHARACTERISTIC_CRASH_TYPE_UUID)))
+    }
 
     // Track if the message received has changed to trigger the callback
     val messageReceived by remember(state?.messageReceived) {
@@ -359,6 +394,9 @@ fun ConnectDeviceScreen(
         if (!state?.services.isNullOrEmpty()) {
             Log.d("ConnectGATT", "Device ${device.address} services discovered: ${state?.services?.size}")
             onDeviceConnected(state?.services ?: emptyList())
+            
+            // Enable notifications for all M5Stick characteristics
+            enableM5StickNotifications(state?.gatt, m5StickCrashChar, m5StickTimeChar, m5StickLocationChar, m5StickCrashTypeChar)
         }
     }
 
@@ -423,6 +461,29 @@ fun ConnectDeviceScreen(
             Text(text = "Services: None discovered yet")
         }
         
+        // M5Stick services status
+        Text(text = "M5Stick Services:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        Text(
+            text = "• Crash Service: ${if (m5StickCrashService != null) "Found" else "Not Found"}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 16.dp)
+        )
+        Text(
+            text = "• Time Service: ${if (m5StickTimeService != null) "Found" else "Not Found"}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 16.dp)
+        )
+        Text(
+            text = "• Location Service: ${if (m5StickLocationService != null) "Found" else "Not Found"}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 16.dp)
+        )
+        Text(
+            text = "• Crash Type Service: ${if (m5StickCrashTypeService != null) "Found" else "Not Found"}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = 16.dp)
+        )
+        
         Text(text = "Message sent: ${state?.messageSent}")
         Text(text = "Message received: ${state?.messageReceived}")
         
@@ -451,27 +512,20 @@ fun ConnectDeviceScreen(
                 }
             },
         ) {
-            Text(text = "Discover")
+            Text(text = "Discover Services")
         }
+        
         Button(
-            enabled = state?.gatt != null && characteristic != null,
+            enabled = state?.gatt != null && (m5StickCrashChar != null || m5StickTimeChar != null || 
+                    m5StickLocationChar != null || m5StickCrashTypeChar != null),
             onClick = {
                 scope.launch(Dispatchers.IO) {
-                    sendData(state?.gatt!!, characteristic!!)
+                    // Enable notifications for all M5Stick characteristics again in case they were lost
+                    enableM5StickNotifications(state?.gatt, m5StickCrashChar, m5StickTimeChar, m5StickLocationChar, m5StickCrashTypeChar)
                 }
             },
         ) {
-            Text(text = "Write to server")
-        }
-        Button(
-            enabled = state?.gatt != null && characteristic != null,
-            onClick = {
-                scope.launch(Dispatchers.IO) {
-                    state?.gatt?.readCharacteristic(characteristic)
-                }
-            },
-        ) {
-            Text(text = "Read characteristic")
+            Text(text = "Enable M5Stick Notifications")
         }
         
         // Send test crash for demo purposes
@@ -518,6 +572,45 @@ fun ConnectDeviceScreen(
         
         Button(onClick = onClose) {
             Text(text = "Close")
+        }
+    }
+}
+
+/**
+ * Enable notifications for all M5Stick characteristics
+ */
+@SuppressLint("MissingPermission")
+private fun enableM5StickNotifications(
+    gatt: BluetoothGatt?,
+    crashChar: BluetoothGattCharacteristic?,
+    timeChar: BluetoothGattCharacteristic?,
+    locationChar: BluetoothGattCharacteristic?,
+    crashTypeChar: BluetoothGattCharacteristic?
+) {
+    if (gatt == null) return
+    
+    Log.d("ConnectGATT", "Enabling notifications for M5Stick characteristics")
+    
+    // Enable notifications for each characteristic
+    listOf(crashChar, timeChar, locationChar, crashTypeChar).forEach { char ->
+        if (char != null) {
+            val descriptor = char.getDescriptor(java.util.UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+            if (descriptor != null) {
+                // Enable notification
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gatt.setCharacteristicNotification(char, true)
+                    gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    gatt.setCharacteristicNotification(char, true)
+                    @Suppress("DEPRECATION")
+                    gatt.writeDescriptor(descriptor)
+                }
+                Log.d("ConnectGATT", "Enabled notifications for ${char.uuid}")
+            } else {
+                Log.e("ConnectGATT", "Descriptor not found for ${char.uuid}")
+            }
         }
     }
 }
@@ -572,7 +665,7 @@ private data class DeviceConnectionState(
 @Composable
 private fun BLEConnectEffect(
     device: BluetoothDevice,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    lifecycleOwner: LifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current,
     onStateChange: (DeviceConnectionState) -> Unit,
 ) {
     val context = LocalContext.current
@@ -587,6 +680,7 @@ private fun BLEConnectEffect(
         // This callback will notify us when things change in the GATT connection so we can update
         // our state
         val callback = object : BluetoothGattCallback() {
+            @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
             override fun onConnectionStateChange(
                 gatt: BluetoothGatt,
                 status: Int,
@@ -604,6 +698,13 @@ private fun BLEConnectEffect(
                     // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#createBond()
                     Log.e("BLEConnectEffect", "An error happened: $status")
                 }
+                
+                // When connected, discover services
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    Log.d("ConnectGATT", "Device ${device.address} connected")
+                    // Add a small delay before discovering services
+                    gatt.discoverServices()
+                }
             }
 
             override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
@@ -614,8 +715,21 @@ private fun BLEConnectEffect(
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                 super.onServicesDiscovered(gatt, status)
-                state = state.copy(services = gatt.services)
-                currentOnStateChange(state)
+                Log.d("ConnectGATT", "Services discovered, status: $status")
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    val services = gatt.services
+                    Log.d("ConnectGATT", "Found ${services.size} services")
+                    services.forEach { service ->
+                        Log.d("ConnectGATT", "Service: ${service.uuid}")
+                        service.characteristics.forEach { char ->
+                            Log.d("ConnectGATT", "  Characteristic: ${char.uuid}")
+                        }
+                    }
+                    state = state.copy(services = gatt.services)
+                    currentOnStateChange(state)
+                } else {
+                    Log.e("ConnectGATT", "Service discovery failed with status: $status")
+                }
             }
 
             override fun onCharacteristicWrite(
@@ -636,6 +750,7 @@ private fun BLEConnectEffect(
             ) {
                 super.onCharacteristicRead(gatt, characteristic, status)
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    @Suppress("DEPRECATION")
                     doOnRead(characteristic.value)
                 }
             }
@@ -649,10 +764,52 @@ private fun BLEConnectEffect(
                 super.onCharacteristicRead(gatt, characteristic, value, status)
                 doOnRead(value)
             }
+            
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+            override fun onCharacteristicChanged(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+            ) {
+                super.onCharacteristicChanged(gatt, characteristic)
+                Log.d("ConnectGATT", "Characteristic changed: ${characteristic.uuid}")
+                
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    @Suppress("DEPRECATION")
+                    val value = characteristic.value
+                    doOnRead(value)
+                }
+            }
+            
+            override fun onCharacteristicChanged(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                value: ByteArray
+            ) {
+                super.onCharacteristicChanged(gatt, characteristic, value)
+                Log.d("ConnectGATT", "Characteristic changed (API 33+): ${characteristic.uuid}")
+                doOnRead(value)
+            }
 
             private fun doOnRead(value: ByteArray) {
-                state = state.copy(messageReceived = value.decodeToString())
+                val message = value.decodeToString()
+                Log.d("ConnectGATT", "Received message: $message")
+                state = state.copy(messageReceived = message)
                 currentOnStateChange(state)
+            }
+            
+            override fun onDescriptorWrite(
+                gatt: BluetoothGatt,
+                descriptor: BluetoothGattDescriptor,
+                status: Int
+            ) {
+                super.onDescriptorWrite(gatt, descriptor, status)
+                val charUuid = descriptor.characteristic.uuid
+                Log.d("ConnectGATT", "Descriptor write completed for characteristic $charUuid with status: $status")
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.d("ConnectGATT", "Successfully enabled notifications for $charUuid")
+                } else {
+                    Log.e("ConnectGATT", "Failed to enable notifications for $charUuid")
+                }
             }
         }
 
