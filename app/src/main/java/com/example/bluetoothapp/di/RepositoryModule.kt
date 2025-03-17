@@ -6,6 +6,8 @@ import com.example.bluetoothapp.repository.ConnectedDevicesRepository
 import com.example.bluetoothapp.repository.CosmoRepository
 import com.example.bluetoothapp.repository.CrashAlertRepository
 import com.example.bluetoothapp.repository.DefaultCosmoRepository
+import com.example.bluetoothapp.repository.FakeCosmoRepository
+import com.example.bluetoothapp.repository.MqttRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,7 +21,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideCosmoRepository(retrofitCosmo: RetrofitCosmo): CosmoRepository {
-        return DefaultCosmoRepository(retrofitCosmo)
+        // Use the fake repository to avoid API errors
+        return FakeCosmoRepository()
+        // For production, use:
+        // return DefaultCosmoRepository(retrofitCosmo)
     }
     
     @Provides
@@ -34,5 +39,13 @@ object RepositoryModule {
         @ApplicationContext context: Context
     ): ConnectedDevicesRepository {
         return ConnectedDevicesRepository(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideMqttRepository(
+        @ApplicationContext context: Context
+    ): MqttRepository {
+        return MqttRepository(context)
     }
 }

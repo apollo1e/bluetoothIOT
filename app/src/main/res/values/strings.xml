@@ -4,4 +4,5 @@
     <string name="bluetooth">Nearby Bluetooth Devices</string>
     <string name="crash_alerts">Crash Alerts</string>
     <string name="dashboard">Dashboard</string>
+    <string name="mqtt_alerts">MQTT Alerts</string>
 </resources>

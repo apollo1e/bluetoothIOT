@@ -111,7 +111,12 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-
+    // MQTT
+    implementation(libs.org.eclipse.paho.client.mqttv3)
+    implementation(libs.org.eclipse.paho.android.service)
+    // Support libraries for MQTT (due to legacy dependencies)
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.localbroadcastmanager)
 
     //compose
 

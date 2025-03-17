@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.bluetoothapp.R
 import com.example.bluetoothapp.bluetooth.ConnectGATT
 import com.example.bluetoothapp.viewmodels.CrashAlertViewModel
+import com.example.bluetoothapp.viewmodels.MqttAlertViewModel
 import kotlinx.coroutines.launch
 
 
@@ -45,7 +46,8 @@ enum class AppPage(
 ) {
     DEVICES(R.string.devices_title, R.drawable.baseline_devices_other_24),
     BLUETOOTH(R.string.bluetooth, R.drawable.baseline_bluetooth_24),
-    CRASH_ALERTS(R.string.crash_alerts, R.drawable.baseline_warning_24)
+    CRASH_ALERTS(R.string.crash_alerts, R.drawable.baseline_warning_24),
+    MQTT_ALERTS(R.string.mqtt_alerts, R.drawable.baseline_mqtt_24)
 }
 
 @SuppressLint("SuspiciousIndentation")
@@ -168,6 +170,10 @@ fun HomePagerScreen(
                 
                 AppPage.CRASH_ALERTS -> {
                     CrashAlertsScreen()
+                }
+                
+                AppPage.MQTT_ALERTS -> {
+                    MqttAlertsScreen()
                 }
             }
         }

@@ -52,6 +52,7 @@ fun DashboardScreen(
     onNavigateToDevices: () -> Unit,
     onNavigateToBluetoothDevices: () -> Unit,
     onNavigateToCrashAlerts: () -> Unit,
+    onNavigateToMqttAlerts: () -> Unit,
     devicesViewModel: DevicesViewModel = hiltViewModel(),
     crashAlertViewModel: CrashAlertViewModel = hiltViewModel()
 ) {
@@ -385,6 +386,66 @@ fun DashboardScreen(
                 ) {
                     Text(
                         text = "Scan Bluetooth Devices",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+        }
+        
+        // MQTT Alerts Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = WidgetBackground
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "MQTT Alerts",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_mqtt_24),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    
+                    Text(
+                        text = "View alerts from MQTT broker",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(start = 12.dp)
+                    )
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(vertical = 8.dp)
+                        .clickable { onNavigateToMqttAlerts() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "View MQTT Alerts",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
