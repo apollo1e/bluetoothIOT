@@ -67,12 +67,26 @@ fun DevicesScreen(
 ) {
     val devices: List<Device> by viewModel.devicesFlow.collectAsState()
     val connectedDevices: List<ConnectedDevice> by viewModel.connectedDevices.collectAsState()
+    val errorState: String? by viewModel.errorState.collectAsState()
     
     var showRemoveDialog by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
-            DevicesTopBar()
+            DevicesTopBar(onRefresh = { viewModel.loadDevices() })
+        },
+        floatingActionButton = {
+            // Show a refresh FAB if there's an error
+            if (errorState != null) {
+                FloatingActionButton(
+                    onClick = { viewModel.loadDevices() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh"
+                    )
+                }
+            }
         }
     ) { padding ->
         Column(
@@ -139,6 +153,50 @@ fun DevicesScreen(
                             modifier = Modifier.padding(16.dp)
                         )
                         
+                        // Show error message if there is one
+                        if (errorState != null) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    
+                                    Text(
+                                        text = "There was an issue loading devices. Tap refresh to try again.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier
+                                            .padding(start = 8.dp)
+                                            .weight(1f)
+                                    )
+                                    
+                                    IconButton(
+                                        onClick = { viewModel.loadDevices() }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = "Refresh",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
                         androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         Spacer(modifier = Modifier.height(16.dp))
                         
@@ -186,10 +244,23 @@ fun DevicesScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DevicesTopBar() {
+private fun DevicesTopBar(
+    onRefresh: (() -> Unit)? = null
+) {
     TopAppBar(
         title = {
             Text(text = "Device List")
+        },
+        actions = {
+            // Add refresh button
+            if (onRefresh != null) {
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh devices"
+                    )
+                }
+            }
         }
     )
 }

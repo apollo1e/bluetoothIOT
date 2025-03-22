@@ -10,6 +10,7 @@ import com.example.bluetoothapp.bluetooth.ConnectGATT
 import com.example.bluetoothapp.compose.CrashAlertsScreen
 import com.example.bluetoothapp.compose.DashboardScreen
 import com.example.bluetoothapp.compose.DevicesScreen
+import com.example.bluetoothapp.compose.MqttScreen
 
 @Composable
 fun AppNavHost(
@@ -32,6 +33,9 @@ fun AppNavHost(
                 },
                 onNavigateToCrashAlerts = {
                     navController.navigate("crash_alerts")
+                },
+                onNavigateToMqtt = {
+                    navController.navigate(NavigationItem.MQTT.route)
                 }
             )
         }
@@ -42,6 +46,10 @@ fun AppNavHost(
         
         composable(NavigationItem.BLUETOOTH.route) {
             ConnectGATT()
+        }
+        
+        composable(NavigationItem.MQTT.route) {
+            MqttScreen()
         }
         
         composable("crash_alerts") {

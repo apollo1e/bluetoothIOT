@@ -11,18 +11,19 @@ class GetDevicesUseCase @Inject constructor(private val cosmoRepository: CosmoRe
 
     suspend operator fun invoke(): Flow<DeviceResponse> = flow {
         try {
-
             // Call the repository to get devices
             val devices = cosmoRepository.getDevicesRepository()
 
             // Emit the devices into the flow
             emit(devices)
         } catch (e: Exception) {
-            // Handle exceptions if necessary
-            // You can emit a specific error state or log the exception
+            // Log the error but don't rethrow it
+            // FailSafeCosmoRepository should have already handled this,
+            // but we're adding an extra safety layer
             Log.e(TAG, "Error in GetDevicesUseCase: ${e.message}", e)
-
-            throw e
+            
+            // Emit an empty device response instead of throwing
+            emit(DeviceResponse(emptyList()))
         }
     }
 

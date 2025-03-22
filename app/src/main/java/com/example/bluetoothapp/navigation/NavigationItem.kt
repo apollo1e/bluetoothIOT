@@ -11,5 +11,6 @@ enum class NavigationItem(
 ) {
     DASHBOARD(R.string.dashboard, R.drawable.baseline_motorcycle_24, "dashboard"),
     DEVICES(R.string.devices_title, R.drawable.baseline_devices_other_24, "devices"),
-    BLUETOOTH(R.string.bluetooth, R.drawable.baseline_bluetooth_24, "bluetooth")
+    BLUETOOTH(R.string.bluetooth, R.drawable.baseline_bluetooth_24, "bluetooth"),
+    MQTT(R.string.mqtt, R.drawable.baseline_cloud_sync_24, "mqtt")
 }

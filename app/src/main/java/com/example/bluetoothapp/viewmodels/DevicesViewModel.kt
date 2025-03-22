@@ -26,6 +26,10 @@ class DevicesViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _apiDevicesFlow = MutableStateFlow<List<Device>>(emptyList())
+    private val _errorState = MutableStateFlow<String?>(null)
+    
+    // Publicly exposed error state
+    val errorState: StateFlow<String?> = _errorState
     
     // Combine API devices with connected devices
     val devicesFlow: StateFlow<List<Device>> = 
@@ -59,10 +63,29 @@ class DevicesViewModel @Inject constructor(
 
     init {
         // Start the use case when the ViewModel is created
+        loadDevices()
+    }
+    
+    /**
+     * Load devices from the repository with error handling
+     */
+    fun loadDevices() {
         viewModelScope.launch {
-            getDevicesUseCase().collect { deviceResponse ->
-                // Update the StateFlow with the list of devices from API
-                _apiDevicesFlow.value = deviceResponse.devices
+            try {
+                // Clear any previous errors
+                _errorState.value = null
+                
+                getDevicesUseCase().collect { deviceResponse ->
+                    // Update the StateFlow with the list of devices from API
+                    _apiDevicesFlow.value = deviceResponse.devices
+                }
+            } catch (e: Exception) {
+                // In case the error still propagates to here despite our safety measures
+                Log.e("DevicesViewModel", "Error loading devices", e)
+                _errorState.value = "Couldn't load devices: ${e.localizedMessage}"
+                
+                // We'll still provide an empty list to not break the UI
+                _apiDevicesFlow.value = emptyList()
             }
         }
     }
