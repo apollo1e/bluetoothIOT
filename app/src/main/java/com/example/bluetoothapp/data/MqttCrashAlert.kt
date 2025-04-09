@@ -13,17 +13,18 @@ data class MqttCrashAlert(
     @SerializedName("timestamp") val timestamp: String = "",
     @SerializedName("crashType") val crashType: String = "",
     @SerializedName("crashStatus") val crashStatus: String = "",
-    @SerializedName("location") val location: MqttLocation? = null
+    @SerializedName("location") val location: String = "Unknown"
 )
 
 /**
- * Data class representing a location with latitude and longitude
+ * This commented code was previously used for JSON object location format.
+ * Now using string format directly from the ESP32.
  */
-data class MqttLocation(
-    @SerializedName("lat") val lat: Double = 0.0,
-    @SerializedName("lon") val lon: Double = 0.0
-) {
-    override fun toString(): String {
-        return "Lat: $lat, Lon: $lon"
-    }
-}
+// data class MqttLocation(
+//     @SerializedName("lat") val lat: Double = 0.0,
+//     @SerializedName("lon") val lon: Double = 0.0
+// ) {
+//     override fun toString(): String {
+//         return "Lat: $lat, Lon: $lon"
+//     }
+// }

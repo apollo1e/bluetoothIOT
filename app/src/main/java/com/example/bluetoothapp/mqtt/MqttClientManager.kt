@@ -47,8 +47,6 @@ class MqttClientManager @Inject constructor(private val context: Context) {
     
     // Certificate and key file names
     private val rootCaFile = "certs/rootCA.crt"
-    private val clientCertFile = "certs/client.crt"
-    private val clientKeyFile = "certs/client.key"
 
     /**
      * Initializes the MQTT client with TLS configuration

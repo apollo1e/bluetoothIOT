@@ -302,7 +302,7 @@ fun MqttCrashAlertDetails(crashAlert: MqttCrashAlert) {
     ) {
         DataRow("Crash ID", crashAlert.crashId.toString())
         DataRow("Status", crashAlert.crashStatus)
-        DataRow("Location", crashAlert.location?.toString() ?: "Unknown")
+        DataRow("Location", crashAlert.location)
         DataRow("Acceleration", String.format("%.2f", crashAlert.acceleration))
         DataRow("Tilt Angle", String.format("%.2f", crashAlert.tiltAngle))
     }
