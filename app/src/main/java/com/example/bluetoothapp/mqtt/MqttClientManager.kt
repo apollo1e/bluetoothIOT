@@ -42,7 +42,7 @@ class MqttClientManager @Inject constructor(private val context: Context) {
     private var messageCallback: ((MqttCrashAlert) -> Unit)? = null
     private var connectionCallback: ((Boolean) -> Unit)? = null
     
-    // HiveMQ MQTT client instances
+    // HiveMQ MQTT client instance  s
     private var mqttClient: Mqtt3AsyncClient? = null
     
     // Certificate and key file names
@@ -77,31 +77,12 @@ class MqttClientManager @Inject constructor(private val context: Context) {
     }
 
     /**
-     * Creates SSL configuration using the certificates and keys
+     * Creates SSL configuration using only the CA certificate (one-way TLS)
      */
     private fun createSslConfig(): MqttClientSslConfig {
         // Load the CA certificate
         val caInputStream = context.assets.open(rootCaFile)
         val caCert = loadCertificate(caInputStream)
-        
-        // Load the client certificate
-        val clientCertInputStream = context.assets.open(clientCertFile)
-        val clientCert = loadCertificate(clientCertInputStream)
-        
-        // Load the client private key
-        val clientKeyInputStream = context.assets.open(clientKeyFile)
-        val clientKey = loadPrivateKey(clientKeyInputStream)
-        
-        // Create a KeyStore and add the client certificate and private key
-        val keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-        keyStore.load(null, null)
-        
-        // Add the client cert and key to the keystore
-        keyStore.setKeyEntry("client", clientKey, "".toCharArray(), arrayOf(clientCert))
-        
-        // Create a KeyManagerFactory with the keystore
-        val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-        keyManagerFactory.init(keyStore, "".toCharArray())
         
         // Create a TrustManagerFactory with the CA certificate
         val trustStore = KeyStore.getInstance(KeyStore.getDefaultType())
@@ -111,9 +92,8 @@ class MqttClientManager @Inject constructor(private val context: Context) {
         val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
         trustManagerFactory.init(trustStore)
         
-        // Build and return the SSL config
+        // Build and return the SSL config - using only trust manager, no key manager
         return MqttClientSslConfig.builder()
-            .keyManagerFactory(keyManagerFactory)
             .trustManagerFactory(trustManagerFactory)
             .build()
     }
@@ -146,7 +126,7 @@ class MqttClientManager @Inject constructor(private val context: Context) {
     }
 
     /**
-     * Connects to the MQTT broker
+     * Connects to the MQTT broker with username authentication (like ESP32)
      */
     fun connect() {
         if (mqttClient == null) {
@@ -157,6 +137,10 @@ class MqttClientManager @Inject constructor(private val context: Context) {
             mqttClient?.connectWith()
                 ?.cleanSession(true)
                 ?.keepAlive(60)
+                ?.simpleAuth()
+                ?.username("Syahmi") // Should match the username in ESP32 code
+                ?.password("".toByteArray()) // Empty password as in ESP32 code
+                ?.applySimpleAuth()
                 ?.send()
                 ?.whenComplete { connAck, throwable ->
                     if (throwable != null) {
