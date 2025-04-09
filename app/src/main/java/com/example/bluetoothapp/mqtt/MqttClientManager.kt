@@ -33,7 +33,7 @@ class MqttClientManager @Inject constructor(private val context: Context) {
     companion object {
         private const val TAG = "MqttClientManager"
         private const val CLIENT_ID_PREFIX = "android-mqtt-client-"
-        private const val MQTT_BROKER_HOST = "192.168.1.2" // Mosquitto broker IP
+        private const val MQTT_BROKER_HOST = "172.20.10.2" // Mosquitto broker IP
         private const val MQTT_BROKER_PORT = 8883 // TLS port
         private const val MQTT_TOPIC = "iot/crashalerts" // Topic to subscribe to
     }
@@ -83,15 +83,15 @@ class MqttClientManager @Inject constructor(private val context: Context) {
         // Load the CA certificate
         val caInputStream = context.assets.open(rootCaFile)
         val caCert = loadCertificate(caInputStream)
-        
+
         // Create a TrustManagerFactory with the CA certificate
         val trustStore = KeyStore.getInstance(KeyStore.getDefaultType())
         trustStore.load(null, null)
         trustStore.setCertificateEntry("ca", caCert)
-        
+
         val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
         trustManagerFactory.init(trustStore)
-        
+
         // Build and return the SSL config - using only trust manager, no key manager
         return MqttClientSslConfig.builder()
             .trustManagerFactory(trustManagerFactory)
